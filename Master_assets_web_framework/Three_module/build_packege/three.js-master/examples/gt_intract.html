@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - lights - hemisphere light</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				color: #444;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="x">
+			 
+			 <div id="kk"> <h1>Info Bar </h1>  </div>
+			<button id="show">Show Shoue, Change color  </button>
+			<button id="hide">hide Shoue</button>
+			<button id="knot_hide">hide lice</button>
+			<button id="knot_show">show lice </button>
+			<button id="knot_change_color">Change Color Knot</button>
+		</div>
+		<div id="container"></div>
+	
+
+		<script type="x-shader/x-vertex" id="vertexShader">
+
+			varying vec3 vWorldPosition;
+
+			void main() {
+
+				vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+				vWorldPosition = worldPosition.xyz;
+
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+
+		</script>
+
+		<script type="x-shader/x-fragment" id="fragmentShader">
+
+			uniform vec3 topColor;
+			uniform vec3 bottomColor;
+			uniform float offset;
+			uniform float exponent;
+
+			varying vec3 vWorldPosition;
+
+			void main() {
+
+				float h = normalize( vWorldPosition + offset ).y;
+				gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
+
+			}
+
+		</script>
+
+		<script type="module">
+
+			import * as THREE from '../build/three.module.js';
+
+			import Stats from './jsm/libs/stats.module.js';
+
+			import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+			import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+
+			 
+
+
+			let camera,controls, scene, renderer;
+			const mixers = [];
+			let stats;
+
+			const clock = new THREE.Clock();
+
+			init();
+			animate();
+
+			function init() {
+
+				const container = document.getElementById( 'container' );
+
+				camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 5000 );
+				camera.position.set( 0, 0, 250 );
+				camera.lookAt ( 0, 0, 0 ) ;
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color().setHSL( 0.6, 0, 1 );
+				scene.fog = new THREE.Fog( scene.background, 1, 5000 );
+
+
+
+			
+
+				// LIGHTS
+
+				const hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.6 );
+				hemiLight.color.setHSL( 0.6, 1, 0.6 );
+				hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
+				hemiLight.position.set( 0, 50, 0 );
+				scene.add( hemiLight );
+
+				 
+
+
+
+               
+
+
+
+
+				//
+
+				const dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+				dirLight.color.setHSL( 0.1, 1, 0.95 );
+				dirLight.position.set( - 1, 1.75, 1 );
+				dirLight.position.multiplyScalar( 30 );
+				scene.add( dirLight );
+
+				dirLight.castShadow = true;
+
+				dirLight.shadow.mapSize.width = 2048;
+				dirLight.shadow.mapSize.height = 2048;
+
+				const d = 50;
+
+				dirLight.shadow.camera.left = - d;
+				dirLight.shadow.camera.right = d;
+				dirLight.shadow.camera.top = d;
+				dirLight.shadow.camera.bottom = - d;
+
+				dirLight.shadow.camera.far = 3500;
+				dirLight.shadow.bias = - 0.0001;
+ 
+
+				// GROUND
+
+				// const groundGeo = new THREE.PlaneGeometry( 10000, 10000 );
+				// const groundMat = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+				// groundMat.color.setHSL( 0.095, 1, 0.75 );
+// 
+				// const ground = new THREE.Mesh( groundGeo, groundMat );
+				// ground.position.y = - 33;
+				// ground.rotation.x = - Math.PI / 2;
+				// ground.receiveShadow = true;
+				// scene.add( ground );
+ 
+ 
+					 
+	 
+ 
+
+				var x = new GLTFLoader();
+				x.load("models/gltf/gt/2.glb",function(y){
+					var mesh = y.scene;
+					mesh.position.set(-55, 10, 100)
+					mesh.castShadow = true;
+					mesh.receiveShadow = true;
+					mesh.visible = true;
+				 
+                	 
+				 scene.add(y.scene)
+
+
+				 const mixer = new THREE.AnimationMixer( mesh );
+					mixer.clipAction( gltf.animations[ 0 ] ).setDuration( 1 ).play();
+					mixers.push( mixer );
+				
+				 
+				})	
+				
+				
+				
+ 
+				
+
+ 
+			 
+
+				// RENDERER
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+				renderer.outputEncoding = THREE.sRGBEncoding;
+				renderer.shadowMap.enabled = true;
+
+				// STATS
+
+				//stats = new Stats();
+				//container.appendChild( stats.dom );
+
+				//
+
+
+
+					
+
+
+					
+				controls = new OrbitControls( camera, renderer.domElement );
+				controls.listenToKeyEvents( window ); // optional
+
+			 
+
+				controls.enableDamping = true;  
+				controls.dampingFactor = 0.2;
+				controls.enablePan = true;
+				controls.enableZoom= true;
+
+				controls.screenSpacePanning = false;
+
+				controls.minDistance = 100;
+				controls.maxDistance = 500;
+				// controls.maxPolarAngle = Math.PI / 2;
+
+				
+
+
+				//Box geometry 
+				const geometry = new THREE.BoxGeometry( 50, 250, 50)
+                var material = new THREE.MeshStandardMaterial( { color: 0xff0051 })
+				
+
+                const cube = new THREE.Mesh ( geometry, material )
+                cube.position.set(-90,0,0);
+				scene.add( cube )
+				cube.visible = true;
+				 
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				const hemisphereButton = document.getElementById( 'show' );
+				hemisphereButton.addEventListener( 'click', function () {
+				cube.visible = true; 
+				document.getElementById("show").innerHTML = "You entered the property of shoues . More options>here  ";
+				cube.material = new THREE.MeshPhongMaterial( { color: 0x0066ff, reflectivity : 1 })
+
+			
+				} );
+
+				const directionalButton = document.getElementById( 'hide' );
+				directionalButton.addEventListener( 'click', function () {
+					 
+				cube.visible = false;
+				} );
+
+			 
+
+
+			 
+
+
+				//torus geometry 
+				
+				const knot = new THREE.TorusKnotGeometry( 30, 3, 100, 16 );
+				var knot_material = new THREE.MeshStandardMaterial( { color: 0xffff00 } );
+				const torusKnot = new THREE.Mesh( knot, knot_material );
+				torusKnot.position.set(90,10,0);
+				scene.add( torusKnot );
+
+				const knot_change_color = document.getElementById( 'knot_change_color' );
+				knot_change_color.addEventListener('click',function(){
+					//alert("click recieved ");
+					torusKnot.material=new THREE.MeshStandardMaterial( { color: 0x63fc,
+						specular:0x111111,
+						emissive:0xef0000,
+						 shininess:100,
+						 flatShading:true,
+						 vertexColors:true,
+						 refractionRatio:0,
+
+						 fog:true, } );
+				
+				});
+
+
+				const knotButton = document.getElementById( 'knot_hide' );
+				knotButton.addEventListener('click',function(){
+					//alert("click recieved ");
+					torusKnot.visible = false;
+				
+				});
+
+				const knotButton_SHOW = document.getElementById( 'knot_show' );
+				knotButton_SHOW.addEventListener('click',function(){
+					//alert("click recieved ");
+					torusKnot.visible = true;
+				});
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+				const delta = clock.getDelta();
+
+				for ( let i = 0; i < mixers.length; i ++ ) {
+
+					mixers[ i ].update( delta );
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
